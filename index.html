@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
+<meta name="theme-color" content="#c0392b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Волшебное слово — план заучивания</title>
+<style>
+  :root {
+    --bg: #fdfaf5;
+    --card: #ffffff;
+    --accent: #c0392b;
+    --accent-soft: #f9e6e3;
+    --text: #2c2c2c;
+    --muted: #7a7a7a;
+    --done: #27ae60;
+    --done-soft: #e8f8ef;
+    --border: #e8e2d9;
+    --tap: 48px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    padding: 12px 12px calc(80px + env(safe-area-inset-bottom));
+    font-family: "Georgia", "Times New Roman", serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 17px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 1.4em;
+    margin: 8px 0 4px;
+    padding: 0 8px;
+    line-height: 1.3;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-style: italic;
+    margin-bottom: 16px;
+    font-size: .9em;
+    padding: 0 8px;
+  }
+
+  /* Прогресс — прилипает сверху, с учётом «чёлки» */
+  .progress-wrap {
+    max-width: 900px;
+    margin: 0 auto 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px calc(14px + env(safe-area-inset-top) * 0);
+    position: sticky;
+    top: calc(8px + env(safe-area-inset-top));
+    z-index: 20;
+    box-shadow: 0 4px 14px rgba(0,0,0,.08);
+  }
+  .progress-text {
+    text-align: center;
+    font-size: .95em;
+    color: var(--muted);
+    font-weight: bold;
+  }
+  .progress-bar {
+    height: 16px;
+    background: #eee;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #e67e22, #27ae60);
+    transition: width .35s ease;
+  }
+
+  /* Карточка дня */
+  .day {
+    max-width: 900px;
+    margin: 0 auto 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    transition: background .25s;
+  }
+  .day-header {
+    min-height: var(--tap);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    background: var(--accent-soft);
+  }
+  /* Большая зона тапа для галочки на телефоне */
+  .check-wrap {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--accent);
+    transition: all .2s;
+    cursor: pointer;
+  }
+  .day.done .check-wrap {
+    background: var(--done);
+    border-color: var(--done);
+  }
+  .check-wrap svg { width: 24px; height: 24px; stroke: var(--accent); fill: none; stroke-width: 3; }
+  .day.done .check-wrap svg { stroke: #fff; }
+  .day-title {
+    font-size: 1.02em;
+    font-weight: bold;
+    color: var(--accent);
+    flex: 1;
+    line-height: 1.3;
+  }
+  .day-task {
+    display: block;
+    font-size: .78em;
+    color: var(--muted);
+    font-style: italic;
+    font-weight: normal;
+    margin-top: 3px;
+  }
+  .toggle-icon {
+    font-size: 1.1em;
+    color: var(--accent);
+    transition: transform .25s;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .day.done .day-header { background: var(--done-soft); }
+  .day.done .day-title { color: var(--done); }
+  .day.done .toggle-icon { color: var(--done); }
+  .day-body {
+    padding: 0 14px 16px;
+    display: block;
+    animation: fadeIn .2s ease;
+  }
+  .day.collapsed .day-body { display: none; }
+  .day.collapsed .toggle-icon { transform: rotate(-90deg); }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .text-block {
+    background: #fbf8f2;
+    border-left: 4px solid var(--accent);
+    padding: 12px 14px;
+    margin: 10px 0;
+    border-radius: 0 8px 8px 0;
+    font-size: 1em;
+  }
+  .text-block p { margin: 0 0 10px; }
+  .text-block p:last-child { margin-bottom: 0; }
+
+  .keys-label {
+    font-size: .78em;
+    color: var(--muted);
+    margin-top: 12px;
+    font-family: Arial, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .keys {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .key {
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: .82em;
+    font-family: Arial, sans-serif;
+    line-height: 1.2;
+  }
+  .tip {
+    background: #eef6fc;
+    border-left: 4px solid #3498db;
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    margin-top: 12px;
+    font-size: .88em;
+    font-family: Arial, sans-serif;
+    color: #2c3e50;
+  }
+  .tip b { color: #2980b9; }
+
+  /* Кнопка «наверх» — удобна на телефоне */
+  .to-top {
+    position: fixed;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 22px;
+    box-shadow: 0 4px 16px rgba(192,57,43,.4);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s, transform .25s;
+    transform: translateY(10px);
+    z-index: 30;
+  }
+  .to-top.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+  /* ===== Планшеты и телефоны ===== */
+  @media (max-width: 480px) {
+    body { padding: 10px 10px calc(80px + env(safe-area-inset-bottom)); font-size: 16px; }
+    h1 { font-size: 1.2em; }
+    .subtitle { font-size: .82em; margin-bottom: 12px; }
+    .day-header { padding: 10px 10px; gap: 8px; }
+    .day-title { font-size: .95em; }
+    .day-task { font-size: .72em; }
+    .day-body { padding: 0 10px 14px; }
+    .text-block { padding: 10px 10px; font-size: .95em; }
+    .key { font-size: .76em; padding: 4px 10px; }
+    .tip { font-size: .82em; padding: 9px 11px; }
+    .check-wrap { width: 40px; height: 40px; min-width: 40px; }
+    .check-wrap svg { width: 20px; height: 20px; }
+  }
+  @media (max-width: 360px) {
+    body { font-size: 15px; }
+    h1 { font-size: 1.1em; }
+    .day-title { font-size: .9em; }
+  }
+  /* Ландшафт на телефоне */
+  @media (max-height: 450px) and (orientation: landscape) {
+    .progress-wrap { position: static; }
+  }
+  /* Уважаем настройку «меньше движения» */
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+  @media print {
+    .progress-wrap { position: static; }
+    .day-body { display: block !important; }
+    .to-top { display: none; }
+    body { padding: 0; }
+  }
+</style>
+</head>
+<body>
+
+<h1>«Волшебное слово»</h1>
+<p class="subtitle">план заучивания за неделю · тапай по карточке, чтобы свернуть</p>
+
+<div class="progress-wrap" id="progressWrap">
+  <div class="progress-text" id="progressText">Выучено: 0 из 7 частей</div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<!-- ДЕНЬ 1 -->
+<div class="day" data-day="1">
+  <div class="day-header" onclick="toggleDay(this)">
+    <div class="check-wrap" onclick="event.stopPropagation(); markDone(this)" role="checkbox" aria-checked="false" tabindex="0" aria-label="Отметить день 1 выученным">
+      <svg viewBox="0 0 24 24"><polyline points="4,12 10,18 20,6"/></svg>
+    </div>
+    <div class="day-title">День 1 — Часть 1<span class="day-task">Старик на скамейке · читать вслух 3–5 раз, пересказ</span></div>
+    <span class="toggle-icon">▼</span>
+  </div>
+  <div class="day-body">
+    <div class="text-block">
+      <p>Маленький старичок с длинной седой бородой сидел на скамейке и зонтиком чертил что-то на песке. — Подвиньтесь, — сказал ему Павлик и присел на край. Старик подвинулся и, взглянув на красное, сердитое лицо мальчика, сказал: — С тобой что-то случилось? — Ну и ладно! А вам-то что? — покосился на него Павлик.</p>
+    </div>
+    <div class="keys-label">Ключевые слова</div>
+    <div class="keys">
+      <span class="key">старичок</span><span class="key">седая борода</span><span class="key">зонтик</span><span class="key">песок</span><span class="key">«Подвиньтесь»</span><span class="key">красное сердитое лицо</span><span class="key">«С тобой что-то случилось?»</span>
+    </div>
+    <div class="tip"><b>Как учить:</b> прочитай вслух 3–5 раз. Закрой текст — перескажи своими словами. Потом близко к тексту. Перед сном прочитай ещё раз.</div>
+  </div>
+</div>
+
+<!-- ДЕНЬ 2 -->
+<div class="day" data-day="2">
+  <div class="day-header" onclick="toggleDay(this)">
+    <div class="check-wrap" onclick="event.stopPropagation(); markDone(this)" role="checkbox" aria-checked="false" tabindex="0" aria-label="Отметить день 2 выученным">
+      <svg viewBox="0 0 24 24"><polyline points="4,12 10,18 20,6"/></svg>
+    </div>
+    <div class="day-title">День 2 — Часть 2<span class="day-task">Повтор 1 + жалобы Павлика (Ленка, бабушка, брат)</span></div>
+    <span class="toggle-icon">▼</span>
+  </div>
+  <div class="day-body">
+    <div class="text-block">
+      <p>— Мне ничего. А вот ты сейчас кричал, плакал, ссорился с кем-то… — Ещё бы! — сердито буркнул мальчик. — Я скоро совсем убегу из дому. — Убежишь? — Убегу! Из-за одной Ленки убегу. — Павлик сжал кулаки. — Я ей сейчас чуть не поддал хорошенько! Ни одной краски не даёт! А у самой сколько! — Не даёт? Ну, из-за этого убегать не стоит. — Не только из-за этого. Бабушка за одну морковку из кухни меня прогнала… прямо тряпкой, тряпкой… Павлик засопел от обиды. — Пустяки! — сказал старик. — Один поругает, другой пожалеет. — Никто меня не жалеет! — крикнул Павлик. — Брат на лодке едет кататься, а меня не берёт. Я ему говорю: «Возьми лучше, всё равно я от тебя не отстану, вёсла утащу, сам в лодку залезу!» Павлик стукнул кулаком по скамейке. И вдруг замолчал. — Что же, не берёт тебя брат? — А почему вы всё спрашиваете? Старик разгладил длинную бороду: — Я хочу тебе помочь. Есть такое волшебное слово…</p>
+    </div>
+    <div class="keys-label">Ключевые слова</div>
+    <div class="keys">
+      <span class="key">«убегу из дому»</span><span class="key">Ленка · краски</span><span class="key">бабушка · морковка · тряпка</span><span class="key">брат · лодка · вёсла</span><span class="key">стукнул кулаком</span><span class="key">«Есть волшебное слово»</span>
+    </div>
+    <div class="tip"><b>Схема памяти:</b> три обиды по порядку — <b>сестра → бабушка → брат</b>.</div>
+  </div>
+</div>
+
+<!-- ДЕНЬ 3 -->
+<div class="day" data-day="3">
+  <div class="day-header" onclick="toggleDay(this)">
+    <div class="check-wrap" onclick="event.stopPropagation(); markDone(this)" role="checkbox" aria-checked="false" tabindex="0" aria-label="Отметить день 3 выученным">
+      <svg viewBox="0 0 24 24"><polyline points="4,12 10,18 20,6"/></svg>
+    </div>
+    <div class="day-title">День 3 — Часть 3<span class="day-task">Повтор 1–2 + условие волшебного слова</span></div>
+    <span class="toggle-icon">▼</span>
+  </div>
+  <div class="day-body">
+    <div class="text-block">
+      <p>Павлик раскрыл рот. — Я скажу тебе это слово. Но помни: говорить его надо тихим голосом, глядя прямо в глаза тому, с кем говоришь. Помни — тихим голосом, глядя прямо в глаза… — А какое слово? Старик наклонился к самому уху мальчика. Мягкая борода его коснулась павликовой щеки. Он прошептал что-то и громко добавил: — Это волшебное слово. Но не забудь, как нужно говорить его. — Я попробую, — усмехнулся Павлик, — я сейчас же попробую. — Он вскочил и побежал домой.</p>
+    </div>
+    <div class="keys-label">Ключевые слова</div>
+    <div class="keys">
+      <span class="key">раскрыл рот</span><span class="key">тихим голосом</span><span class="key">прямо в глаза</span><span class="key">наклонился к уху</span><span class="key">борода коснулась щеки</span><span class="key">«Я попробую»</span><span class="key">побежал домой</span>
+    </div>
+    <div class="tip"><b>Якорь:</b> «тихим голосом, глядя прямо в глаза» — повторяется дважды, это «скелет» текста.</div>
+  </div>
+</div>
+
+<!-- ДЕНЬ 4 -->
+<div class="day" data-day="4">
+  <div class="day-header" onclick="toggleDay(this)">
+    <div class="check-wrap" onclick="event.stopPropagation(); markDone(this)" role="checkbox" aria-checked="false" tabindex="0" aria-label="Отметить день 4 выученным">
+      <svg viewBox="0 0 24 24"><polyline points="4,12 10,18 20,6"/></svg>
+    </div>
+    <div class="day-title">День 4 — Часть 4<span class="day-task">Повтор 1–3 + сцена с Леной</span></div>
+    <span class="toggle-icon">▼</span>
+  </div>
+  <div class="day-body">
+    <div class="text-block">
+      <p>Лена сидела за столом и рисовала. Краски — зелёные, синие, красные — лежали перед ней. Увидев Павлика, она сейчас же сгребла их в кучу и накрыла рукой. «Обманул старик! — с досадой подумал мальчик. — Разве такая поймёт волшебное слово?!..» Павлик боком подошёл к сестре и потянул её за рукав. Сестра оглянулась. Тогда, глядя ей в глаза, тихим голосом мальчик сказал: — Лена, дай мне одну краску… пожалуйста… Лена широко раскрыла глаза. Пальцы её разжались, и, снимая руку со стола, она смущённо пробормотала: — Какую тебе? — Мне синюю, — робко сказал Павлик. Он взял краску, подержал её в руках, походил с нею по комнате и отдал сестре. Ему не нужна была краска. Он думал теперь только о волшебном слове.</p>
+    </div>
+    <div class="keys-label">Ключевые слова</div>
+    <div class="keys">
+      <span class="key">Лена рисует</span><span class="key">сгребла краски</span><span class="key">«Обманул старик!»</span><span class="key">потянул за рукав</span><span class="key">«дай мне одну краску… пожалуйста»</span><span class="key">пальцы разжались</span><span class="key">«Какую тебе?»</span><span class="key">синюю</span><span class="key">отдал обратно</span>
+    </div>
+    <div class="tip"><b>Схема:</b> попросил → удивилась → согласилась. Повторится ещё дважды!</div>
+  </div>
+</div>
+
+<!-- ДЕНЬ 5 -->
+<div class="day" data-day="5">
+  <div class="day-header" onclick="toggleDay(this)">
+    <div class="check-wrap" onclick="event.stopPropagation(); markDone(this)" role="checkbox" aria-checked="false" tabindex="0" aria-label="Отметить день 5 выученным">
+      <svg viewBox="0 0 24 24"><polyline points="4,12 10,18 20,6"/></svg>
+    </div>
+    <div class="day-title">День 5 — Часть 5<span class="day-task">Повтор 1–4 + сцена с бабушкой</span></div>
+    <span class="toggle-icon">▼</span>
+  </div>
+  <div class="day-body">
+    <div class="text-block">
+      <p>«Пойду к бабушке. Она как раз стряпает. Прогонит или нет?» Павлик отворил дверь в кухню. Старушка снимала с противня горячие пирожки. Внук подбежал к ней, обеими руками повернул к себе красное морщинистое лицо, заглянул в глаза и прошептал: — Дай мне кусочек пирожка… пожалуйста. Бабушка выпрямилась. Волшебное слово так и засияло в каждой морщинке, в глазах, в улыбке. — Горяченького… горяченького захотел, голубчик мой! — приговаривала она, выбирая самый лучший, румяный пирожок. Павлик подпрыгнул от радости и расцеловал её в обе щеки. «Волшебник! Волшебник!» — повторял он про себя, вспоминая старика.</p>
+    </div>
+    <div class="keys-label">Ключевые слова</div>
+    <div class="keys">
+      <span class="key">«Пойду к бабушке»</span><span class="key">стряпает</span><span class="key">противень · пирожки</span><span class="key">повернул лицо</span><span class="key">заглянул в глаза</span><span class="key">«кусочек пирожка… пожалуйста»</span><span class="key">засияло в морщинках</span><span class="key">«горяченького, голубчик мой»</span><span class="key">расцеловал</span><span class="key">«Волшебник!»</span>
+    </div>
+    <div class="tip"><b>Та же схема:</b> попросил → бабушка расцвела → дала лучший пирожок.</div>
+  </div>
+</div>
+
+<!-- ДЕНЬ 6 -->
+<div class="day" data-day="6">
+  <div class="day-header" onclick="toggleDay(this)">
+    <div class="check-wrap" onclick="event.stopPropagation(); markDone(this)" role="checkbox" aria-checked="false" tabindex="0" aria-label="Отметить день 6 выученным">
+      <svg viewBox="0 0 24 24"><polyline points="4,12 10,18 20,6"/></svg>
+    </div>
+    <div class="day-title">День 6 — Часть 6<span class="day-task">Повтор 1–5 + сцена с братом и финал</span></div>
+    <span class="toggle-icon">▼</span>
+  </div>
+  <div class="day-body">
+    <div class="text-block">
+      <p>За обедом Павлик сидел притихший и прислушивался к каждому слову брата. Когда брат сказал, что поедет кататься на лодке, Павлик положил руку на его плечо и тихо попросил: — Возьми меня, пожалуйста. За столом сразу все замолчали. Брат поднял брови и усмехнулся. — Возьми его, — вдруг сказала сестра. — Что тебе стоит! — Ну, отчего же не взять? — улыбнулась бабушка. — Конечно, возьми. — Пожалуйста, — повторил Павлик. Брат громко засмеялся, потрепал мальчика по плечу, взъерошил ему волосы: — Эх ты, путешественник! Ну ладно, собирайся! «Помогло! Опять помогло!» Павлик выскочил из-за стола и побежал на улицу. Но в сквере уже не было старика. Скамейка была пуста, и только на песке остались начерченные зонтиком непонятные знаки.</p>
+    </div>
+    <div class="keys-label">Ключевые слова</div>
+    <div class="keys">
+      <span class="key">за обедом · притихший</span><span class="key">рука на плечо</span><span class="key">«Возьми меня, пожалуйста»</span><span class="key">все замолчали</span><span class="key">сестра · бабушка</span><span class="key">«путешественник»</span><span class="key">взъерошил волосы</span><span class="key">«Помогло! Опять помогло!»</span><span class="key">скамейка пуста</span><span class="key">знаки на песке</span>
+    </div>
+    <div class="tip"><b>Финал:</b> старик исчез, остались только знаки — расскажи с паузой.</div>
+  </div>
+</div>
+
+<!-- ДЕНЬ 7 -->
+<div class="day day7" data-day="7">
+  <div class="day-header" onclick="toggleDay(this)">
+    <div class="check-wrap" onclick="event.stopPropagation(); markDone(this)" role="checkbox" aria-checked="false" tabindex="0" aria-label="Отметить день 7 выученным">
+      <svg viewBox="0 0 24 24"><polyline points="4,12 10,18 20,6"/></svg>
+    </div>
+    <div class="day-title">День 7 — Прогон всего текста<span class="day-task">3–4 раза за день + переходы между частями</span></div>
+    <span class="toggle-icon">▼</span>
+  </div>
+  <div class="day-body">
+    <div class="text-block">
+      <p><b>План на день:</b></p>
+      <p>1. Утром — расскажи весь текст по памяти, не подглядывая. Отметь, где запнулся.<br>
+      2. Днём — отработай только «провальные» куски: 5–6 медленных проговариваний вслух с листа, потом по памяти.<br>
+      3. Вечером — полный прогон с выражением, «играя» роли.<br>
+      4. Перед сном — прочитай весь текст вслух один раз.</p>
+    </div>
+    <div class="keys-label">Особое внимание — переходам</div>
+    <div class="keys">
+      <span class="key">скамейка → дом</span><span class="key">Лена → кухня</span><span class="key">кухня → обед</span><span class="key">обед → улица</span>
+    </div>
+    <div class="tip"><b>Совет:</b> на переходах чаще всего «спотыкаются». Проговори их отдельно.</div>
+  </div>
+</div>
+
+<button class="to-top" id="toTop" aria-label="Наверх" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+  const checks = document.querySelectorAll('.check-wrap');
+  const total = checks.length;
+  const STORAGE_KEY = 'volshebnoe-slovo-progress';
+
+  // Восстановление прогресса из localStorage (если открыли снова)
+  function loadProgress() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      checks.forEach((wrap, i) => {
+        if (saved[i]) setDone(wrap, true, false);
+      });
+    } catch (e) {}
+    updateProgress();
+  }
+
+  function saveProgress() {
+    try {
+      const state = [...checks].map(w => w.getAttribute('aria-checked') === 'true');
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {}
+  }
+
+  function setDone(wrap, done, save = true) {
+    const day = wrap.closest('.day');
+    wrap.setAttribute('aria-checked', done ? 'true' : 'false');
+    day.classList.toggle('done', done);
+    if (save) { saveProgress(); updateProgress(); }
+  }
+
+  function markDone(wrap) {
+    const current = wrap.getAttribute('aria-checked') === 'true';
+    setDone(wrap, !current);
+    // лёгкая вибрация на телефоне, если поддерживается
+    if (navigator.vibrate) navigator.vibrate(!current ? 30 : 0);
+  }
+
+  function toggleDay(header) {
+    header.closest('.day').classList.toggle('collapsed');
+  }
+
+  function updateProgress() {
+    const done = [...checks].filter(w => w.getAttribute('aria-checked') === 'true').length;
+    document.getElementById('progressText').textContent =
+      'Выучено: ' + done + ' из ' + total + ' частей' + (done === total ? ' 🎉' : '');
+    document.getElementById('progressFill').style.width = (done / total * 100) + '%';
+  }
+
+  // Поддержка клавиатуры (доступность)
+  checks.forEach(wrap => {
+    wrap.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); markDone(wrap); }
+    });
+  });
+
+  // Кнопка «наверх»
+  const toTop = document.getElementById('toTop');
+  window.addEventListener('scroll', () => {
+    toTop.classList.toggle('show', window.scrollY > 400);
+  }, { passive: true });
+
+  loadProgress();
+
+  // Свайп вниз на заголовке — сворачивание (удобно на телефоне)
+  document.querySelectorAll('.day-header').forEach(h => {
+    let startY = null;
+    h.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+    h.addEventListener('touchend', e => {
+      if (startY === null) return;
+      const dy = e.changedTouches[0].clientY - startY;
+      if (Math.abs(dy) > 60) { h.closest('.day').classList.toggle('collapsed'); }
+      startY = null;
+    }, { passive: true });
+  });
+</script>
+
+</body>
+</html>
